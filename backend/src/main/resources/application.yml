@@ -1,0 +1,74 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: chatbot-platform-backend
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DATABASE_URL:${DB_URL:jdbc:mysql://localhost:3306/chatbot_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}}
+    username: ${DATABASE_USERNAME:${DB_USERNAME:root}}
+    password: ${DATABASE_PASSWORD:${DB_PASSWORD:}}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        type:
+          preferred_uuid_jdbc_type: VARCHAR
+        format_sql: false
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# AI Provider & Model Configuration
+ai:
+  default-provider: ${AI_DEFAULT_PROVIDER:OLLAMA}
+  default-model: ${AI_DEFAULT_MODEL:llama3.2:3b}
+  default-temperature: ${AI_DEFAULT_TEMPERATURE:0.7}
+  default-max-tokens: ${AI_DEFAULT_MAX_TOKENS:2048}
+  default-top-p: ${AI_DEFAULT_TOP_P:1.0}
+  timeout-seconds: ${AI_TIMEOUT_SECONDS:60}
+  max-retries: ${AI_MAX_RETRIES:2}
+  retry-backoff-ms: ${AI_RETRY_BACKOFF_MS:1000}
+  ollama:
+    base-url: ${AI_OLLAMA_BASE_URL:http://localhost:11434}
+    api-key: ${AI_OLLAMA_API_KEY:}
+    connect-timeout-ms: ${AI_OLLAMA_CONNECT_TIMEOUT_MS:5000}
+    read-timeout-ms: ${AI_OLLAMA_READ_TIMEOUT_MS:60000}
+  context:
+    max-messages: ${AI_CONTEXT_MAX_MESSAGES:20}
+    max-tokens: ${AI_CONTEXT_MAX_TOKENS:4096}
+    reserved-output-tokens: ${AI_CONTEXT_RESERVED_OUTPUT_TOKENS:1024}
+  streaming:
+    enabled: ${AI_STREAMING_ENABLED:true}
+    timeout-ms: ${AI_STREAMING_TIMEOUT_MS:120000}
+    heartbeat-enabled: ${AI_STREAMING_HEARTBEAT_ENABLED:true}
+    heartbeat-interval-ms: ${AI_STREAMING_HEARTBEAT_INTERVAL_MS:15000}
+
+# Application Security & JWT Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration-ms: ${JWT_EXPIRATION_MS:900000}
+    issuer: chatbot-platform
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+

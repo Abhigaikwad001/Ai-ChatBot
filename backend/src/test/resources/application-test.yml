@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: chatbot-platform-backend-test
+  datasource:
+    url: jdbc:h2:mem:chatbot_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        type:
+          preferred_uuid_jdbc_type: VARCHAR
+        format_sql: true
+    show-sql: false
+  flyway:
+    enabled: false
+
+app:
+  jwt:
+    secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    access-token-expiration-ms: 900000
+    issuer: chatbot-platform-test
+  cors:
+    allowed-origins: http://localhost:3000
+
+ai:
+  default-provider: OLLAMA
+  default-model: llama3.2:3b
+  default-temperature: 0.7
+  default-max-tokens: 2048
+  default-top-p: 1.0
+  timeout-seconds: 5
+  max-retries: 0
+  retry-backoff-ms: 10
+  ollama:
+    base-url: http://localhost:11434
+    api-key: ""
+    connect-timeout-ms: 1000
+    read-timeout-ms: 1000
+  context:
+    max-messages: 20
+    max-tokens: 4096
+    reserved-output-tokens: 1024
+  streaming:
+    enabled: true
+    timeout-ms: 5000
+    heartbeat-enabled: false
+    heartbeat-interval-ms: 10000
+
