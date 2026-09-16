@@ -13,8 +13,6 @@ import com.chatbot.platform.core.repository.ConversationRepository;
 import com.chatbot.platform.core.repository.MessageRepository;
 import com.chatbot.platform.core.repository.UserRepository;
 import com.chatbot.platform.infrastructure.ai.TestStubAiProvider;
-import com.chatbot.platform.security.jwt.JwtService;
-import com.chatbot.platform.security.principal.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -60,12 +57,6 @@ class MessageStreamingIntegrationTest {
     private MessageRepository messageRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
     private TestStubAiProvider stubAiProvider;
 
     private User userA;
@@ -81,18 +72,18 @@ class MessageStreamingIntegrationTest {
         conversationRepository.deleteAll();
         userRepository.deleteAll();
 
-        userA = new User("doctor_a@hospital.org", passwordEncoder.encode("Password123!"), "Dr. Alice");
+        userA = new User("doctor_a@hospital.org", "pwdHash", "Dr. Alice");
         userA.setRole(UserRole.ROLE_USER);
         userA.setStatus(UserStatus.ACTIVE);
         userA = userRepository.saveAndFlush(userA);
 
-        userB = new User("doctor_b@hospital.org", passwordEncoder.encode("Password123!"), "Dr. Bob");
+        userB = new User("doctor_b@hospital.org", "pwdHash", "Dr. Bob");
         userB.setRole(UserRole.ROLE_USER);
         userB.setStatus(UserStatus.ACTIVE);
         userB = userRepository.saveAndFlush(userB);
 
-        tokenA = jwtService.generateToken(new UserPrincipal(userA));
-        tokenB = jwtService.generateToken(new UserPrincipal(userB));
+        tokenA = "no-auth-token";
+        tokenB = "no-auth-token";
 
         conversationA = new Conversation(userA, "Cardiology Rounds");
         conversationA = conversationRepository.saveAndFlush(conversationA);

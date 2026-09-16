@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Sidebar } from '../../components/layout/Sidebar'
 import type { ConversationSummaryResponse } from '../../types/conversation'
-import type { UserResponse } from '../../types/auth'
 
 describe('Sidebar Component', () => {
   const mockConversations: ConversationSummaryResponse[] = [
@@ -26,29 +25,17 @@ describe('Sidebar Component', () => {
     },
   ]
 
-  const mockUser: UserResponse = {
-    id: 'u1',
-    email: 'test.user@hospital.org',
-    fullName: 'Dr. Jane Smith',
-    role: 'ROLE_USER',
-    status: 'ACTIVE',
-    createdAt: '2026-09-15T08:00:00Z',
-    updatedAt: '2026-09-15T08:00:00Z',
-  }
-
   it('should render conversation list and active selection', () => {
     render(
       <Sidebar
         conversations={mockConversations}
         activeId="c1"
         isLoading={false}
-        user={mockUser}
         isOpenMobile={false}
         onSelect={vi.fn()}
         onNewChat={vi.fn()}
         onRename={vi.fn()}
         onDelete={vi.fn()}
-        onLogout={vi.fn()}
         onCloseMobile={vi.fn()}
       />
     )
@@ -68,13 +55,11 @@ describe('Sidebar Component', () => {
         conversations={mockConversations}
         activeId="c1"
         isLoading={false}
-        user={mockUser}
         isOpenMobile={false}
         onSelect={vi.fn()}
         onNewChat={onNewChat}
         onRename={vi.fn()}
         onDelete={vi.fn()}
-        onLogout={vi.fn()}
         onCloseMobile={vi.fn()}
       />
     )
@@ -93,13 +78,11 @@ describe('Sidebar Component', () => {
         conversations={mockConversations}
         activeId="c1"
         isLoading={false}
-        user={mockUser}
         isOpenMobile={false}
         onSelect={vi.fn()}
         onNewChat={vi.fn()}
         onRename={onRename}
         onDelete={vi.fn()}
-        onLogout={vi.fn()}
         onCloseMobile={vi.fn()}
       />
     )
@@ -126,13 +109,11 @@ describe('Sidebar Component', () => {
         conversations={mockConversations}
         activeId="c1"
         isLoading={false}
-        user={mockUser}
         isOpenMobile={false}
         onSelect={vi.fn()}
         onNewChat={vi.fn()}
         onRename={vi.fn()}
         onDelete={onDelete}
-        onLogout={vi.fn()}
         onCloseMobile={vi.fn()}
       />
     )
@@ -150,31 +131,21 @@ describe('Sidebar Component', () => {
     })
   })
 
-  it('should display user info and trigger logout', () => {
-    const onLogout = vi.fn()
-
+  it('should render cleanly in standalone mode without user profile footer', () => {
     render(
       <Sidebar
         conversations={mockConversations}
         activeId="c1"
         isLoading={false}
-        user={mockUser}
         isOpenMobile={false}
         onSelect={vi.fn()}
         onNewChat={vi.fn()}
         onRename={vi.fn()}
         onDelete={vi.fn()}
-        onLogout={onLogout}
         onCloseMobile={vi.fn()}
       />
     )
 
-    expect(screen.getByText('Dr. Jane Smith')).toBeInTheDocument()
-    expect(screen.getByText('test.user@hospital.org')).toBeInTheDocument()
-
-    const logoutBtn = screen.getByRole('button', { name: /log out/i })
-    fireEvent.click(logoutBtn)
-
-    expect(onLogout).toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: /log out/i })).not.toBeInTheDocument()
   })
 })

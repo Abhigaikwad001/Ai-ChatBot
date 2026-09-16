@@ -16,32 +16,6 @@ export const getApiBaseUrl = (): string => {
   return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 }
 
-const TOKEN_KEY = 'chat_access_token'
-
-export const getAuthToken = (): string | null => {
-  try {
-    return localStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
-}
-
-export const setAuthToken = (token: string): void => {
-  try {
-    localStorage.setItem(TOKEN_KEY, token)
-  } catch {
-    // ignore
-  }
-}
-
-export const removeAuthToken = (): void => {
-  try {
-    localStorage.removeItem(TOKEN_KEY)
-  } catch {
-    // ignore
-  }
-}
-
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -56,11 +30,6 @@ export async function apiClient<T>(
     headers.set('Content-Type', 'application/json')
   }
 
-  const token = getAuthToken()
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
-
   let response: Response
   try {
     response = await fetch(url, {
@@ -70,11 +39,6 @@ export async function apiClient<T>(
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Network error'
     throw new ApiError(0, `Cannot connect to server: ${message}`)
-  }
-
-  if (response.status === 401) {
-    removeAuthToken()
-    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
   }
 
   let responseBody: unknown = null

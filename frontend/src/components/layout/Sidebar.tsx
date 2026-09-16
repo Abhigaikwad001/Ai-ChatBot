@@ -6,24 +6,19 @@ import {
   Edit2,
   Check,
   X,
-  LogOut,
   Sparkles,
-  User,
 } from 'lucide-react'
 import type { ConversationSummaryResponse } from '../../types/conversation'
-import type { UserResponse } from '../../types/auth'
 
 interface SidebarProps {
   conversations: ConversationSummaryResponse[]
   activeId?: string
   isLoading: boolean
-  user?: UserResponse | null
   isOpenMobile: boolean
   onSelect: (id: string) => void
   onNewChat: () => void
   onRename: (id: string, newTitle: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
-  onLogout?: () => void
   onCloseMobile: () => void
 }
 
@@ -31,13 +26,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   conversations,
   activeId,
   isLoading,
-  user,
   isOpenMobile,
   onSelect,
   onNewChat,
   onRename,
   onDelete,
-  onLogout,
   onCloseMobile,
 }) => {
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -243,32 +236,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             })
           )}
         </nav>
-
-        {(user || onLogout) && (
-          <div className="sidebar-footer">
-            <div className="user-profile">
-              <div className="user-avatar" aria-hidden="true">
-                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={16} />}
-              </div>
-              <div className="user-info">
-                <div className="user-name">{user?.fullName || 'User'}</div>
-                <div className="user-email">{user?.email || ''}</div>
-              </div>
-            </div>
-
-            {onLogout && (
-              <button
-                type="button"
-                className="icon-action-btn"
-                onClick={onLogout}
-                aria-label="Log out"
-                title="Log out"
-              >
-                <LogOut size={16} />
-              </button>
-            )}
-          </div>
-        )}
       </aside>
     </>
   )

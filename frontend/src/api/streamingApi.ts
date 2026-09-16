@@ -1,4 +1,4 @@
-import { getApiBaseUrl, getAuthToken, removeAuthToken } from './client'
+import { getApiBaseUrl } from './client'
 import type {
   ContentChunkEvent,
   HeartbeatEvent,
@@ -100,11 +100,6 @@ export async function streamMessage(
     Accept: 'text/event-stream',
   }
 
-  const token = getAuthToken()
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
   let response: Response
   try {
     response = await fetch(url, {
@@ -119,16 +114,6 @@ export async function streamMessage(
     }
     const message = err instanceof Error ? err.message : 'Network error'
     callbacks.onError(new Error(`Failed to connect to streaming endpoint: ${message}`))
-    return
-  }
-
-  if (response.status === 401) {
-    removeAuthToken()
-    window.dispatchEvent(new CustomEvent('auth:unauthorized'))
-    callbacks.onError({
-      code: 'UNAUTHORIZED',
-      message: 'Your session has expired. Please log in again.',
-    })
     return
   }
 

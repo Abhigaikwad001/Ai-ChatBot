@@ -11,8 +11,6 @@ import com.chatbot.platform.core.domain.enums.UserStatus;
 import com.chatbot.platform.core.repository.ConversationRepository;
 import com.chatbot.platform.core.repository.MessageRepository;
 import com.chatbot.platform.core.repository.UserRepository;
-import com.chatbot.platform.security.jwt.JwtService;
-import com.chatbot.platform.security.principal.UserPrincipal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -58,12 +55,6 @@ class ConversationChatIntegrationTest {
     private MessageRepository messageRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtService jwtService;
-
-    @Autowired
     private com.chatbot.platform.core.service.ConversationService conversationService;
 
     @Autowired
@@ -80,18 +71,18 @@ class ConversationChatIntegrationTest {
         conversationRepository.deleteAll();
         userRepository.deleteAll();
 
-        userA = new User("usera@hospital.org", passwordEncoder.encode("Password123!"), "Dr. Alice");
+        userA = new User("usera@hospital.org", "pwdHash", "Dr. Alice");
         userA.setRole(UserRole.ROLE_USER);
         userA.setStatus(UserStatus.ACTIVE);
         userA = userRepository.saveAndFlush(userA);
 
-        userB = new User("userb@hospital.org", passwordEncoder.encode("Password123!"), "Dr. Bob");
+        userB = new User("userb@hospital.org", "pwdHash", "Dr. Bob");
         userB.setRole(UserRole.ROLE_USER);
         userB.setStatus(UserStatus.ACTIVE);
         userB = userRepository.saveAndFlush(userB);
 
-        tokenA = jwtService.generateToken(new UserPrincipal(userA));
-        tokenB = jwtService.generateToken(new UserPrincipal(userB));
+        tokenA = "no-auth-token";
+        tokenB = "no-auth-token";
     }
 
     // =========================================================================
