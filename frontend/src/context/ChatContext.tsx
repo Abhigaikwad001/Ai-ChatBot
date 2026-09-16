@@ -9,7 +9,6 @@ import React, {
 import { conversationApi } from '../api/conversationApi'
 import { messageApi } from '../api/messageApi'
 import { streamMessage } from '../api/streamingApi'
-import { useAuth } from './AuthContext'
 import type {
   ConversationResponse,
   ConversationSummaryResponse,
@@ -40,8 +39,6 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth()
-
   const [conversations, setConversations] = useState<ConversationSummaryResponse[]>([])
   const [activeConversation, setActiveConversation] = useState<ConversationResponse | null>(null)
   const [messages, setMessages] = useState<MessageResponse[]>([])
@@ -59,11 +56,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Load conversation list
   const loadConversations = useCallback(async () => {
-    if (!isAuthenticated) {
-      setConversations([])
-      return
-    }
-
     try {
       setIsLoadingConversations(true)
       const res = await conversationApi.listConversations(0, 50)
@@ -74,17 +66,11 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoadingConversations(false)
     }
-  }, [isAuthenticated])
+  }, [])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadConversations()
-    } else {
-      setConversations([])
-      setActiveConversation(null)
-      setMessages([])
-    }
-  }, [isAuthenticated, loadConversations])
+    loadConversations()
+  }, [loadConversations])
 
   // Select conversation and load its messages
   const selectConversation = useCallback(

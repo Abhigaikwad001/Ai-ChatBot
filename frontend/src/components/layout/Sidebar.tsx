@@ -17,13 +17,13 @@ interface SidebarProps {
   conversations: ConversationSummaryResponse[]
   activeId?: string
   isLoading: boolean
-  user: UserResponse | null
+  user?: UserResponse | null
   isOpenMobile: boolean
   onSelect: (id: string) => void
   onNewChat: () => void
   onRename: (id: string, newTitle: string) => Promise<void>
   onDelete: (id: string) => Promise<void>
-  onLogout: () => void
+  onLogout?: () => void
   onCloseMobile: () => void
 }
 
@@ -244,27 +244,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="user-avatar" aria-hidden="true">
-              {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={16} />}
+        {(user || onLogout) && (
+          <div className="sidebar-footer">
+            <div className="user-profile">
+              <div className="user-avatar" aria-hidden="true">
+                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User size={16} />}
+              </div>
+              <div className="user-info">
+                <div className="user-name">{user?.fullName || 'User'}</div>
+                <div className="user-email">{user?.email || ''}</div>
+              </div>
             </div>
-            <div className="user-info">
-              <div className="user-name">{user?.fullName || 'User'}</div>
-              <div className="user-email">{user?.email || ''}</div>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            className="icon-action-btn"
-            onClick={onLogout}
-            aria-label="Log out"
-            title="Log out"
-          >
-            <LogOut size={16} />
-          </button>
-        </div>
+            {onLogout && (
+              <button
+                type="button"
+                className="icon-action-btn"
+                onClick={onLogout}
+                aria-label="Log out"
+                title="Log out"
+              >
+                <LogOut size={16} />
+              </button>
+            )}
+          </div>
+        )}
       </aside>
     </>
   )

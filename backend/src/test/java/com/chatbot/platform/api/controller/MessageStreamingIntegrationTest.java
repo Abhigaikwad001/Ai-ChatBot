@@ -133,27 +133,31 @@ class MessageStreamingIntegrationTest {
         });
     }
 
+    @Autowired
+    private com.chatbot.platform.core.service.ChatService chatService;
+
     @Test
-    @DisplayName("2. POST /stream rejects unauthenticated request with 401 Unauthorized")
-    void testStreamMessage_unauthenticated_rejected() throws Exception {
+    @DisplayName("2. POST /stream connects successfully for unauthenticated user in standalone mode")
+    void testStreamMessage_unauthenticated_succeedsInStandaloneMode() throws Exception {
+        stubAiProvider.setCustomChunks(List.of("Unauthenticated ", "streaming works!"));
         SendMessageRequest request = new SendMessageRequest("Unauthenticated message", null);
 
         mockMvc.perform(post("/api/v1/conversations/" + conversationA.getId() + "/messages/stream")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isOk())
+            .andExpect(request().asyncStarted())
+            .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("text/event-stream")));
     }
 
     @Test
-    @DisplayName("3. POST /stream rejects unauthorized user with 403 Forbidden")
-    void testStreamMessage_wrongOwner_rejected() throws Exception {
+    @DisplayName("3. ChatService rejects unauthorized user when userId is provided")
+    void testStreamMessage_serviceRejectsWrongOwnerWhenUserIdProvided() {
         SendMessageRequest request = new SendMessageRequest("Wrong owner message", null);
 
-        mockMvc.perform(post("/api/v1/conversations/" + conversationA.getId() + "/messages/stream")
-                .header("Authorization", "Bearer " + tokenB)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isForbidden());
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            chatService.streamMessage(conversationA.getId(), userB.getId(), request)
+        ).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test

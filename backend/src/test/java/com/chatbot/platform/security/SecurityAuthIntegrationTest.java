@@ -27,7 +27,10 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.UUID;
 
+import com.chatbot.platform.security.util.OwnershipValidator;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -62,6 +65,9 @@ class SecurityAuthIntegrationTest {
 
     @Autowired
     private JwtProperties jwtProperties;
+
+    @Autowired
+    private OwnershipValidator ownershipValidator;
 
     @BeforeEach
     void cleanDatabase() {
@@ -292,8 +298,8 @@ class SecurityAuthIntegrationTest {
     }
 
     @Test
-    @DisplayName("15. Ownership boundary: User A cannot access User B's conversation (returns 403 Forbidden)")
-    void testOwnershipBoundary_crossUserAccessDenied() throws Exception {
+    @DisplayName("15. Ownership boundary: User A cannot access User B's conversation via OwnershipValidator (throws AccessDeniedException)")
+    void testOwnershipBoundary_crossUserAccessDenied() {
         User userA = createAndPersistUser("userA@hospital.org", "Password123!", UserRole.ROLE_USER, UserStatus.ACTIVE);
         User userB = createAndPersistUser("userB@hospital.org", "Password123!", UserRole.ROLE_USER, UserStatus.ACTIVE);
 
@@ -301,32 +307,25 @@ class SecurityAuthIntegrationTest {
         Conversation convoB = new Conversation(userB, "Private Medical History");
         convoB = conversationRepository.saveAndFlush(convoB);
 
-        // User A logs in and attempts to access User B's conversation
-        String tokenA = jwtService.generateToken(new UserPrincipal(userA));
-
-        mockMvc.perform(get("/api/v1/conversations/" + convoB.getId())
-                .header("Authorization", "Bearer " + tokenA))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.success", is(false)))
-            .andExpect(jsonPath("$.message", containsString("Access denied")));
+        // Direct call to OwnershipValidator asserting ownership validation throws 403 AccessDeniedException
+        UUID convoBId = convoB.getId();
+        UUID userAId = userA.getId();
+        assertThatThrownBy(() -> ownershipValidator.verifyAndGetConversation(convoBId, userAId))
+            .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+            .hasMessageContaining("Access denied");
     }
 
     @Test
-    @DisplayName("16. Ownership boundary: User A can successfully access their own conversation (returns 200 OK)")
-    void testOwnershipBoundary_ownerCanAccessOwnConversation() throws Exception {
+    @DisplayName("16. Ownership boundary: Owner can access own conversation via OwnershipValidator")
+    void testOwnershipBoundary_ownerCanAccessOwnConversation() {
         User userA = createAndPersistUser("userA@hospital.org", "Password123!", UserRole.ROLE_USER, UserStatus.ACTIVE);
 
         // User A creates a conversation
         Conversation convoA = new Conversation(userA, "User A Patient Notes");
         convoA = conversationRepository.saveAndFlush(convoA);
 
-        String tokenA = jwtService.generateToken(new UserPrincipal(userA));
-
-        mockMvc.perform(get("/api/v1/conversations/" + convoA.getId())
-                .header("Authorization", "Bearer " + tokenA))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.success", is(true)))
-            .andExpect(jsonPath("$.data.id", is(convoA.getId().toString())))
-            .andExpect(jsonPath("$.data.title", is("User A Patient Notes")));
+        Conversation verified = ownershipValidator.verifyAndGetConversation(convoA.getId(), userA.getId());
+        assertThat(verified).isNotNull();
+        assertThat(verified.getTitle()).isEqualTo("User A Patient Notes");
     }
 }

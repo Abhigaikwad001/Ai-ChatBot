@@ -4,12 +4,9 @@ import { Header } from './Header'
 import { MessageList } from '../chat/MessageList'
 import { MessageComposer } from '../chat/MessageComposer'
 import { ErrorBanner } from '../chat/ErrorBanner'
-import { AuthModal } from '../auth/AuthModal'
-import { useAuth } from '../../context/AuthContext'
 import { useChat } from '../../context/ChatContext'
 
 export const AppLayout: React.FC = () => {
-  const { user, isAuthenticated, isLoading: isAuthLoading, logout } = useAuth()
   const {
     conversations,
     activeConversation,
@@ -31,29 +28,6 @@ export const AppLayout: React.FC = () => {
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
 
-  if (isAuthLoading) {
-    return (
-      <div
-        className="app-container"
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        <span>Loading AI Chatbot...</span>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="app-container">
-        <AuthModal />
-      </div>
-    )
-  }
-
   const handlePromptSelect = (prompt: string) => {
     sendMessage(prompt)
   }
@@ -64,13 +38,11 @@ export const AppLayout: React.FC = () => {
         conversations={conversations}
         activeId={activeConversation?.id}
         isLoading={isLoadingConversations}
-        user={user}
         isOpenMobile={isMobileSidebarOpen}
         onSelect={selectConversation}
         onNewChat={() => createNewConversation()}
         onRename={renameConversation}
         onDelete={deleteConversation}
-        onLogout={logout}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 

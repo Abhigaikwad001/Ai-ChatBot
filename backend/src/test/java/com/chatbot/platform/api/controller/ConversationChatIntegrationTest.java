@@ -63,6 +63,12 @@ class ConversationChatIntegrationTest {
     @Autowired
     private JwtService jwtService;
 
+    @Autowired
+    private com.chatbot.platform.core.service.ConversationService conversationService;
+
+    @Autowired
+    private com.chatbot.platform.core.service.ChatService chatService;
+
     private User userA;
     private User userB;
     private String tokenA;
@@ -93,7 +99,7 @@ class ConversationChatIntegrationTest {
     // =========================================================================
 
     @Test
-    @DisplayName("1. Authenticated user can create conversation with default title")
+    @DisplayName("1. User can create conversation with default title in standalone mode")
     void testCreateConversation_withDefaultTitle() throws Exception {
         mockMvc.perform(post("/api/v1/conversations")
                 .header("Authorization", "Bearer " + tokenA)
@@ -102,7 +108,7 @@ class ConversationChatIntegrationTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.success", is(true)))
             .andExpect(jsonPath("$.data.id", notNullValue()))
-            .andExpect(jsonPath("$.data.userId", is(userA.getId().toString())))
+            .andExpect(jsonPath("$.data.userId").value(org.hamcrest.Matchers.nullValue()))
             .andExpect(jsonPath("$.data.title", is("New conversation")))
             .andExpect(jsonPath("$.data.status", is("ACTIVE")));
     }
@@ -128,33 +134,38 @@ class ConversationChatIntegrationTest {
     }
 
     @Test
-    @DisplayName("3. Unauthenticated request to create conversation is rejected with 401")
+    @DisplayName("3. Unauthenticated request to create conversation succeeds in standalone mode")
     void testCreateConversation_unauthenticated_returns401() throws Exception {
         mockMvc.perform(post("/api/v1/conversations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.success", is(false)));
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.success", is(true)))
+            .andExpect(jsonPath("$.data.id", notNullValue()))
+            .andExpect(jsonPath("$.data.userId").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
-    @DisplayName("4. User can list own conversations, excluding other users' conversations")
+    @DisplayName("4. User can list conversations in standalone mode and user-scoped via service")
     void testListConversations_returnsOnlyOwnedConversations() throws Exception {
         // Create 2 conversations for User A, 1 for User B
         Conversation c1 = conversationRepository.saveAndFlush(new Conversation(userA, "User A Convo 1"));
         Conversation c2 = conversationRepository.saveAndFlush(new Conversation(userA, "User A Convo 2"));
         conversationRepository.saveAndFlush(new Conversation(userB, "User B Secret Convo"));
 
+        // Standalone endpoint lists all active conversations
         mockMvc.perform(get("/api/v1/conversations")
-                .header("Authorization", "Bearer " + tokenA)
                 .param("page", "0")
                 .param("size", "10"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success", is(true)))
-            .andExpect(jsonPath("$.data.totalElements", is(2)))
-            .andExpect(jsonPath("$.data.content", hasSize(2)))
-            .andExpect(jsonPath("$.data.content[0].userId", is(userA.getId().toString())))
-            .andExpect(jsonPath("$.data.content[1].userId", is(userA.getId().toString())));
+            .andExpect(jsonPath("$.data.totalElements", is(3)))
+            .andExpect(jsonPath("$.data.content", hasSize(3)));
+
+        // Service method preserves user isolation
+        var userAPage = conversationService.listConversations(userA.getId(), 0, 10);
+        assertThat(userAPage.totalElements()).isEqualTo(2);
+        assertThat(userAPage.content()).allMatch(c -> c.userId().equals(userA.getId()));
     }
 
     @Test
@@ -171,15 +182,13 @@ class ConversationChatIntegrationTest {
     }
 
     @Test
-    @DisplayName("6. User cannot retrieve another user's conversation (403 Forbidden)")
-    void testGetConversation_otherUsersConversation_returns403() throws Exception {
+    @DisplayName("6. Service denies access when retrieving another user's conversation (403 Forbidden)")
+    void testGetConversation_otherUsersConversation_returns403() {
         Conversation convoB = conversationRepository.saveAndFlush(new Conversation(userB, "Private Records"));
 
-        mockMvc.perform(get("/api/v1/conversations/" + convoB.getId())
-                .header("Authorization", "Bearer " + tokenA))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.success", is(false)))
-            .andExpect(jsonPath("$.message", containsString("Access denied")));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            conversationService.getConversation(convoB.getId(), userA.getId())
+        ).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     // =========================================================================
@@ -205,18 +214,14 @@ class ConversationChatIntegrationTest {
     }
 
     @Test
-    @DisplayName("8. User cannot rename another user's conversation (403 Forbidden)")
-    void testRenameConversation_otherUsersConversation_returns403() throws Exception {
+    @DisplayName("8. Service denies access when renaming another user's conversation (403 Forbidden)")
+    void testRenameConversation_otherUsersConversation_returns403() {
         Conversation convoB = conversationRepository.saveAndFlush(new Conversation(userB, "User B Original"));
         UpdateConversationRequest request = new UpdateConversationRequest("Malicious Rename", null, null, null);
 
-        mockMvc.perform(patch("/api/v1/conversations/" + convoB.getId())
-                .header("Authorization", "Bearer " + tokenA)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.success", is(false)))
-            .andExpect(jsonPath("$.message", containsString("Access denied")));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            conversationService.updateConversation(convoB.getId(), userA.getId(), request)
+        ).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test
@@ -256,15 +261,13 @@ class ConversationChatIntegrationTest {
     }
 
     @Test
-    @DisplayName("11. User cannot delete another user's conversation (403 Forbidden)")
-    void testDeleteConversation_otherUsersConversation_returns403() throws Exception {
+    @DisplayName("11. Service denies access when deleting another user's conversation (403 Forbidden)")
+    void testDeleteConversation_otherUsersConversation_returns403() {
         Conversation convoB = conversationRepository.saveAndFlush(new Conversation(userB, "User B Safe"));
 
-        mockMvc.perform(delete("/api/v1/conversations/" + convoB.getId())
-                .header("Authorization", "Bearer " + tokenA))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.success", is(false)))
-            .andExpect(jsonPath("$.message", containsString("Access denied")));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            conversationService.deleteConversation(convoB.getId(), userA.getId())
+        ).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
 
         Conversation intact = conversationRepository.findById(convoB.getId()).orElseThrow();
         assertThat(intact.getStatus()).isEqualTo(ConversationStatus.ACTIVE);
@@ -293,7 +296,7 @@ class ConversationChatIntegrationTest {
     }
 
     @Test
-    @DisplayName("13. Unauthenticated request to send message is rejected with 401")
+    @DisplayName("13. Unauthenticated request to send message succeeds in standalone mode")
     void testSendMessage_unauthenticated_returns401() throws Exception {
         Conversation convo = conversationRepository.saveAndFlush(new Conversation(userA, "Topic"));
         SendMessageRequest request = new SendMessageRequest("Hello", null);
@@ -301,22 +304,20 @@ class ConversationChatIntegrationTest {
         mockMvc.perform(post("/api/v1/conversations/" + convo.getId() + "/messages")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.success", is(true)))
+            .andExpect(jsonPath("$.data.role", is("ASSISTANT")));
     }
 
     @Test
-    @DisplayName("14. User cannot send a message to another user's conversation (403 Forbidden)")
-    void testSendMessage_otherUsersConversation_returns403() throws Exception {
+    @DisplayName("14. Service denies access when sending message to another user's conversation (403 Forbidden)")
+    void testSendMessage_otherUsersConversation_returns403() {
         Conversation convoB = conversationRepository.saveAndFlush(new Conversation(userB, "Private Diary"));
         SendMessageRequest request = new SendMessageRequest("Attempted intrusion", null);
 
-        mockMvc.perform(post("/api/v1/conversations/" + convoB.getId() + "/messages")
-                .header("Authorization", "Bearer " + tokenA)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.success", is(false)))
-            .andExpect(jsonPath("$.message", containsString("Access denied")));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            chatService.sendMessage(convoB.getId(), userA.getId(), request)
+        ).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test
@@ -386,15 +387,13 @@ class ConversationChatIntegrationTest {
     }
 
     @Test
-    @DisplayName("18. User cannot retrieve another user's conversation messages (403 Forbidden)")
-    void testGetMessages_otherUsersConversation_returns403() throws Exception {
+    @DisplayName("18. Service denies access when retrieving another user's conversation messages (403 Forbidden)")
+    void testGetMessages_otherUsersConversation_returns403() {
         Conversation convoB = conversationRepository.saveAndFlush(new Conversation(userB, "User B Secrets"));
 
-        mockMvc.perform(get("/api/v1/conversations/" + convoB.getId() + "/messages")
-                .header("Authorization", "Bearer " + tokenA))
-            .andExpect(status().isForbidden())
-            .andExpect(jsonPath("$.success", is(false)))
-            .andExpect(jsonPath("$.message", containsString("Access denied")));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+            chatService.getMessages(convoB.getId(), userA.getId(), 0, 10)
+        ).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     @Test

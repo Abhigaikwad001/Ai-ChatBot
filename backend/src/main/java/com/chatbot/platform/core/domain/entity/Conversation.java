@@ -36,8 +36,8 @@ import java.util.Map;
 @NoArgsConstructor
 public class Conversation extends BaseAuditableEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "user_id", nullable = true)
     private User user;
 
     @Column(name = "title", nullable = false, length = 255)
@@ -63,6 +63,14 @@ public class Conversation extends BaseAuditableEntity {
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sequenceNumber ASC")
     private List<Message> messages = new ArrayList<>();
+
+    public Conversation(String title) {
+        this(null, title);
+    }
+
+    public Conversation(String title, String systemPrompt, AiModelConfig aiModelConfig) {
+        this(null, title, systemPrompt, aiModelConfig);
+    }
 
     public Conversation(User user, String title) {
         this.user = user;

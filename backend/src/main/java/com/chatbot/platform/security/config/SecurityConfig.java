@@ -138,6 +138,9 @@ public class SecurityConfig {
                 // Public authentication endpoints (only registration and login)
                 .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
 
+                // Standalone chatbot APIs (conversations, messages, SSE streaming) accessible without authentication
+                .requestMatchers("/api/v1/conversations/**").permitAll()
+
                 // Health & monitoring endpoints
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
 

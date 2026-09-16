@@ -37,8 +37,16 @@ public interface ConversationRepository extends JpaRepository<Conversation, UUID
      */
     long countByUserIdAndStatusNot(UUID userId, ConversationStatus status);
 
+    /**
+     * Efficient paginated query for all active conversations excluding soft-deleted records (standalone mode).
+     */
+    Page<Conversation> findByStatusNot(ConversationStatus status, Pageable pageable);
+
     @Query("SELECT c FROM Conversation c LEFT JOIN FETCH c.messages WHERE c.id = :id AND c.user.id = :userId")
     Optional<Conversation> findByIdWithMessages(@Param("id") UUID id, @Param("userId") UUID userId);
+
+    @Query("SELECT c FROM Conversation c LEFT JOIN FETCH c.messages WHERE c.id = :id")
+    Optional<Conversation> findByIdWithMessages(@Param("id") UUID id);
 
     /**
      * Pessimistically locks the conversation row for concurrent message creation,

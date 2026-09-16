@@ -7,7 +7,6 @@ import com.chatbot.platform.api.dto.conversation.ConversationSummaryResponse;
 import com.chatbot.platform.api.dto.conversation.CreateConversationRequest;
 import com.chatbot.platform.api.dto.conversation.UpdateConversationRequest;
 import com.chatbot.platform.core.service.ConversationService;
-import com.chatbot.platform.security.util.SecurityUtils;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,8 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 /**
- * REST controller for authenticated conversation lifecycle operations:
- * creation, listing, retrieval, renaming, and soft-deletion.
+ * REST controller for standalone conversation lifecycle operations:
+ * creation, listing, retrieval, renaming, and soft-deletion without requiring authentication.
  */
 @RestController
 @RequestMapping("/api/v1/conversations")
@@ -38,65 +37,60 @@ public class ConversationController {
     }
 
     /**
-     * Creates a new conversation for the authenticated user.
+     * Creates a new conversation in standalone mode.
      */
     @PostMapping
     public ResponseEntity<ApiResponse<ConversationResponse>> createConversation(
         @Valid @RequestBody(required = false) CreateConversationRequest request
     ) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        ConversationResponse response = conversationService.createConversation(userId, request);
+        ConversationResponse response = conversationService.createConversation(request);
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(ApiResponse.success("Conversation created successfully", response));
     }
 
     /**
-     * Lists active conversations owned by the authenticated user, ordered by most recently active.
+     * Lists active conversations ordered by most recently active in standalone mode.
      */
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ConversationSummaryResponse>>> listConversations(
         @RequestParam(name = "page", defaultValue = "0") int page,
         @RequestParam(name = "size", defaultValue = "20") int size
     ) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        PageResponse<ConversationSummaryResponse> response = conversationService.listConversations(userId, page, size);
+        PageResponse<ConversationSummaryResponse> response = conversationService.listConversations(page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
-     * Retrieves a single conversation by ID with messages, ensuring user ownership.
+     * Retrieves a single conversation by ID with messages in standalone mode.
      */
     @GetMapping("/{conversationId}")
     public ResponseEntity<ApiResponse<ConversationResponse>> getConversation(
         @PathVariable("conversationId") UUID conversationId
     ) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        ConversationResponse response = conversationService.getConversation(conversationId, userId);
+        ConversationResponse response = conversationService.getConversation(conversationId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     /**
-     * Renames or updates conversation settings. Only the owner can update.
+     * Renames or updates conversation settings in standalone mode.
      */
     @PatchMapping("/{conversationId}")
     public ResponseEntity<ApiResponse<ConversationResponse>> updateConversation(
         @PathVariable("conversationId") UUID conversationId,
         @Valid @RequestBody UpdateConversationRequest request
     ) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        ConversationResponse response = conversationService.updateConversation(conversationId, userId, request);
+        ConversationResponse response = conversationService.updateConversation(conversationId, request);
         return ResponseEntity.ok(ApiResponse.success("Conversation updated successfully", response));
     }
 
     /**
-     * Soft-deletes a conversation. Only the owner can delete.
+     * Soft-deletes a conversation in standalone mode.
      */
     @DeleteMapping("/{conversationId}")
     public ResponseEntity<ApiResponse<Void>> deleteConversation(
         @PathVariable("conversationId") UUID conversationId
     ) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        conversationService.deleteConversation(conversationId, userId);
+        conversationService.deleteConversation(conversationId);
         return ResponseEntity.ok(ApiResponse.success("Conversation deleted successfully", null));
     }
 }

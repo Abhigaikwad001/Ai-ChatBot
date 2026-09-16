@@ -61,12 +61,23 @@ public class ConversationService {
     }
 
     /**
-     * Creates a new conversation owned by the authenticated user.
+     * Creates a new conversation in standalone no-auth mode.
+     */
+    @Transactional
+    public ConversationResponse createConversation(CreateConversationRequest request) {
+        return createConversation(null, request);
+    }
+
+    /**
+     * Creates a new conversation owned by the authenticated user (or unowned if userId is null).
      */
     @Transactional
     public ConversationResponse createConversation(UUID userId, CreateConversationRequest request) {
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        User user = null;
+        if (userId != null) {
+            user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        }
 
         String title = (request != null && request.title() != null && !request.title().isBlank())
             ? request.title().trim()
@@ -87,14 +98,22 @@ public class ConversationService {
         }
 
         Conversation saved = conversationRepository.save(conversation);
-        log.info("Conversation [{}] created for user [{}]", saved.getId(), userId);
+        log.info("Conversation [{}] created (user: [{}])", saved.getId(), userId);
 
         return conversationMapper.toResponse(saved);
     }
 
     /**
-     * Lists conversations owned strictly by the authenticated user, ordered by most recently active first.
-     * Excludes soft-deleted conversations.
+     * Lists all active conversations in standalone mode.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<ConversationSummaryResponse> listConversations(int page, int size) {
+        return listConversations(null, page, size);
+    }
+
+    /**
+     * Lists conversations (filtered by userId if provided, or all active conversations if null),
+     * ordered by most recently active first. Excludes soft-deleted conversations.
      */
     @Transactional(readOnly = true)
     public PageResponse<ConversationSummaryResponse> listConversations(UUID userId, int page, int size) {
@@ -102,11 +121,9 @@ public class ConversationService {
         int sanitizedSize = Math.min(Math.max(1, size <= 0 ? DEFAULT_PAGE_SIZE : size), MAX_PAGE_SIZE);
 
         Pageable pageable = PageRequest.of(sanitizedPage, sanitizedSize, Sort.by(Sort.Direction.DESC, "updatedAt"));
-        Page<Conversation> conversationPage = conversationRepository.findByUserIdAndStatusNot(
-            userId,
-            ConversationStatus.DELETED,
-            pageable
-        );
+        Page<Conversation> conversationPage = (userId != null)
+            ? conversationRepository.findByUserIdAndStatusNot(userId, ConversationStatus.DELETED, pageable)
+            : conversationRepository.findByStatusNot(ConversationStatus.DELETED, pageable);
 
         List<ConversationSummaryResponse> summaries = conversationPage.getContent().stream()
             .map(c -> {
@@ -125,14 +142,22 @@ public class ConversationService {
     }
 
     /**
-     * Retrieves a single conversation by ID verifying ownership.
+     * Retrieves a single conversation by ID in standalone mode.
+     */
+    @Transactional(readOnly = true)
+    public ConversationResponse getConversation(UUID conversationId) {
+        return getConversation(conversationId, null);
+    }
+
+    /**
+     * Retrieves a single conversation by ID verifying ownership if userId is provided.
      */
     @Transactional(readOnly = true)
     public ConversationResponse getConversation(UUID conversationId, UUID userId) {
         Conversation conversation = conversationRepository.findById(conversationId)
             .orElseThrow(() -> new ResourceNotFoundException("Conversation not found with id: " + conversationId));
 
-        if (!conversation.getUser().getId().equals(userId)) {
+        if (userId != null && conversation.getUser() != null && !conversation.getUser().getId().equals(userId)) {
             log.warn("Unauthorized access attempt: user [{}] tried to read conversation [{}]", userId, conversationId);
             throw new AccessDeniedException("Access denied: You do not have permission to access this conversation");
         }
@@ -141,21 +166,30 @@ public class ConversationService {
             throw new ResourceNotFoundException("Conversation has been deleted");
         }
 
-        Conversation fullConversation = conversationRepository.findByIdWithMessages(conversationId, userId)
-            .orElse(conversation);
+        Conversation fullConversation = (userId != null)
+            ? conversationRepository.findByIdWithMessages(conversationId, userId).orElse(conversation)
+            : conversationRepository.findByIdWithMessages(conversationId).orElse(conversation);
 
         return conversationMapper.toResponse(fullConversation);
     }
 
     /**
-     * Updates conversation title and metadata. Only the owner can rename or update.
+     * Updates conversation title and metadata in standalone mode.
+     */
+    @Transactional
+    public ConversationResponse updateConversation(UUID conversationId, UpdateConversationRequest request) {
+        return updateConversation(conversationId, null, request);
+    }
+
+    /**
+     * Updates conversation title and metadata. Only the owner can rename or update if userId is provided.
      */
     @Transactional
     public ConversationResponse updateConversation(UUID conversationId, UUID userId, UpdateConversationRequest request) {
         Conversation conversation = conversationRepository.findById(conversationId)
             .orElseThrow(() -> new ResourceNotFoundException("Conversation not found with id: " + conversationId));
 
-        if (!conversation.getUser().getId().equals(userId)) {
+        if (userId != null && conversation.getUser() != null && !conversation.getUser().getId().equals(userId)) {
             log.warn("Unauthorized rename attempt: user [{}] tried to update conversation [{}]", userId, conversationId);
             throw new AccessDeniedException("Access denied: You do not have permission to access this conversation");
         }
@@ -185,9 +219,17 @@ public class ConversationService {
 
         conversation.setUpdatedAt(Instant.now());
         Conversation updated = conversationRepository.save(conversation);
-        log.info("Conversation [{}] updated by user [{}]", conversationId, userId);
+        log.info("Conversation [{}] updated (user: [{}])", conversationId, userId);
 
         return conversationMapper.toResponse(updated);
+    }
+
+    /**
+     * Soft-deletes a conversation in standalone mode. Idempotent.
+     */
+    @Transactional
+    public void deleteConversation(UUID conversationId) {
+        deleteConversation(conversationId, null);
     }
 
     /**
@@ -198,7 +240,7 @@ public class ConversationService {
         Conversation conversation = conversationRepository.findById(conversationId)
             .orElseThrow(() -> new ResourceNotFoundException("Conversation not found with id: " + conversationId));
 
-        if (!conversation.getUser().getId().equals(userId)) {
+        if (userId != null && conversation.getUser() != null && !conversation.getUser().getId().equals(userId)) {
             log.warn("Unauthorized delete attempt: user [{}] tried to delete conversation [{}]", userId, conversationId);
             throw new AccessDeniedException("Access denied: You do not have permission to access this conversation");
         }
@@ -210,6 +252,6 @@ public class ConversationService {
 
         conversation.softDelete();
         conversationRepository.save(conversation);
-        log.info("Conversation [{}] soft-deleted by user [{}]", conversationId, userId);
+        log.info("Conversation [{}] soft-deleted (user: [{}])", conversationId, userId);
     }
 }

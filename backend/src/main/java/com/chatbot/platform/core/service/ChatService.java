@@ -137,11 +137,19 @@ public class ChatService {
     }
 
     /**
+    /**
+     * Executes chat turn in standalone no-auth mode.
+     */
+    public MessageResponse sendMessage(UUID conversationId, SendMessageRequest request) {
+        return sendMessage(conversationId, null, request);
+    }
+
+    /**
      * Executes the complete conversational chat turn:
      * User Message -> Context Building -> AIProvider -> Assistant Message.
      *
      * @param conversationId the conversation identifier
-     * @param userId the authenticated owner's ID
+     * @param userId the authenticated owner's ID (or null in standalone mode)
      * @param request the send message request payload
      * @return the newly generated and persisted assistant {@link MessageResponse}
      */
@@ -216,6 +224,13 @@ public class ChatService {
     }
 
     /**
+     * Persists user message in standalone no-auth mode.
+     */
+    public Message persistUserMessage(UUID conversationId, SendMessageRequest request) {
+        return persistUserMessage(conversationId, null, request);
+    }
+
+    /**
      * Persists only the user message in its own isolated transaction.
      * Uses pessimistic write locking on the Conversation row to guarantee consecutive, collision-free sequencing.
      */
@@ -224,7 +239,7 @@ public class ChatService {
             Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversation not found with id: " + conversationId));
 
-            if (!conversation.getUser().getId().equals(userId)) {
+            if (userId != null && conversation.getUser() != null && !conversation.getUser().getId().equals(userId)) {
                 log.warn("Unauthorized message post attempt: user [{}] tried to access conversation [{}]", userId, conversationId);
                 throw new AccessDeniedException("Access denied: You do not have permission to access this conversation");
             }
@@ -391,6 +406,13 @@ public class ChatService {
      * @param request the send message request payload
      * @return the active {@link SseEmitter} streaming events to the client
      */
+    /**
+     * Executes streaming chat turn in standalone no-auth mode.
+     */
+    public SseEmitter streamMessage(UUID conversationId, SendMessageRequest request) {
+        return streamMessage(conversationId, null, request);
+    }
+
     public SseEmitter streamMessage(UUID conversationId, UUID userId, SendMessageRequest request) {
         validateMessageSize(request);
 
@@ -753,15 +775,23 @@ public class ChatService {
     }
 
     /**
+     * Retrieves paginated messages in standalone no-auth mode.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<MessageResponse> getMessages(UUID conversationId, int page, int size) {
+        return getMessages(conversationId, null, page, size);
+    }
+
+    /**
      * Retrieves paginated messages for a conversation in deterministic sequence order.
-     * Enforces ownership and excludes deleted conversations.
+     * Enforces ownership if userId is provided, and excludes deleted conversations.
      */
     @Transactional(readOnly = true)
     public PageResponse<MessageResponse> getMessages(UUID conversationId, UUID userId, int page, int size) {
         Conversation conversation = conversationRepository.findById(conversationId)
             .orElseThrow(() -> new ResourceNotFoundException("Conversation not found with id: " + conversationId));
 
-        if (!conversation.getUser().getId().equals(userId)) {
+        if (userId != null && conversation.getUser() != null && !conversation.getUser().getId().equals(userId)) {
             log.warn("Unauthorized message retrieval attempt: user [{}] tried to read messages for conversation [{}]", userId, conversationId);
             throw new AccessDeniedException("Access denied: You do not have permission to access this conversation");
         }
