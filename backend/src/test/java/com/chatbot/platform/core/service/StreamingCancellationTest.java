@@ -58,8 +58,11 @@ class StreamingCancellationTest {
         stubAiProvider.reset();
         aiAuditLogRepository.deleteAll();
         messageRepository.deleteAll();
+        messageRepository.flush();
         conversationRepository.deleteAll();
+        conversationRepository.flush();
         userRepository.deleteAll();
+        userRepository.flush();
 
         user = new User("surgeon@hospital.org", "hash", "Dr. Surgeon");
         user.setRole(UserRole.ROLE_USER);

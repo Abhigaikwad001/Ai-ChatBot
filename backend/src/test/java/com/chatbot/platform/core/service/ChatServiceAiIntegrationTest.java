@@ -95,7 +95,7 @@ class ChatServiceAiIntegrationTest {
                 .contains("AI clinical assistant analysis for: Patient has elevated CA-125 markers.");
         assertThat(response.promptTokens()).isEqualTo(14);
         assertThat(response.completionTokens()).isEqualTo(32);
-        assertThat(response.metadata()).containsEntry("provider", "OLLAMA");
+        assertThat(response.metadata()).containsEntry("provider", "OPENAI");
 
         // 2. Both USER (seq 1) and ASSISTANT (seq 2) messages are saved in database
         List<Message> history = messageRepository.findByConversationIdOrderBySequenceNumberAsc(conversationA.getId());
@@ -120,8 +120,8 @@ class ChatServiceAiIntegrationTest {
                 .findByConversationIdOrderByCreatedAtDesc(conversationA.getId());
         assertThat(auditLogs).hasSize(1);
         AiAuditLog log = auditLogs.get(0);
-        assertThat(log.getProvider()).isEqualTo("OLLAMA");
-        assertThat(log.getModel()).isEqualTo("llama3.2:3b");
+        assertThat(log.getProvider()).isEqualTo("OPENAI");
+        assertThat(log.getModel()).isEqualTo("gpt-4o-mini");
         assertThat(log.getMessageId()).isEqualTo(assistantMsg.getId());
         assertThat(log.getTotalTokens()).isEqualTo(46);
         assertThat(log.getFinishReason()).isEqualTo("stop");
@@ -154,7 +154,7 @@ class ChatServiceAiIntegrationTest {
                 .findByConversationIdOrderByCreatedAtDesc(conversationA.getId());
         assertThat(auditLogs).hasSize(1);
         AiAuditLog log = auditLogs.get(0);
-        assertThat(log.getProvider()).isEqualTo("OLLAMA");
+        assertThat(log.getProvider()).isEqualTo("OPENAI");
         assertThat(log.getMessageId()).isNull();
         assertThat(log.getErrorMessage()).contains("Simulated test timeout");
     }

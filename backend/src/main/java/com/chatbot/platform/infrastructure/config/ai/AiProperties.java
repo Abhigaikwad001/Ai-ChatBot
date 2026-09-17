@@ -15,17 +15,27 @@ import org.springframework.context.annotation.Configuration;
 @Setter
 public class AiProperties {
 
-    private ProviderType defaultProvider = ProviderType.OLLAMA;
-    private String defaultModel = "llama3.2:3b";
+    private ProviderType defaultProvider = ProviderType.OPENAI;
+    private String defaultModel = "gpt-4o-mini";
     private Double defaultTemperature = 0.7;
     private Integer defaultMaxTokens = 2048;
     private Double defaultTopP = 1.0;
     private Integer timeoutSeconds = 60;
     private Integer maxRetries = 2;
     private Long retryBackoffMs = 1000L;
+    private OpenAiProperties openai = new OpenAiProperties();
     private OllamaProperties ollama = new OllamaProperties();
     private ContextProperties context = new ContextProperties();
     private StreamingProperties streaming = new StreamingProperties();
+
+    @Getter
+    @Setter
+    public static class OpenAiProperties {
+        private String apiKey = "";
+        private String baseUrl = "https://api.openai.com/v1";
+        private Integer connectTimeoutMs = 10000;
+        private Integer readTimeoutMs = 60000;
+    }
 
     @Getter
     @Setter

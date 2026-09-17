@@ -1,0 +1,16 @@
+/* Essential custom keyframe animations for widget state transitions */
+.close-icon {
+  animation: rotateIn 0.2s ease;
+}
+
+@keyframes rotateIn {
+  from {
+    transform: rotate(-90deg) scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+

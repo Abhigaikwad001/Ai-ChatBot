@@ -24,10 +24,10 @@ public class AiModelConfig implements Serializable {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false, length = 50)
-    private ProviderType provider = ProviderType.OLLAMA;
+    private ProviderType provider = ProviderType.OPENAI;
 
     @Column(name = "model_name", nullable = false, length = 100)
-    private String modelName = "llama3.2:3b";
+    private String modelName = "gpt-4o-mini";
 
     @Column(name = "temperature", nullable = false)
     private Double temperature = 0.7;
@@ -39,6 +39,6 @@ public class AiModelConfig implements Serializable {
     private Double topP = 1.0;
 
     public static AiModelConfig defaultConfig() {
-        return new AiModelConfig(ProviderType.OLLAMA, "llama3.2:3b", 0.7, 2048, 1.0);
+        return new AiModelConfig(ProviderType.OPENAI, "gpt-4o-mini", 0.7, 2048, 1.0);
     }
 }

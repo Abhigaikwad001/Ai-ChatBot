@@ -28,7 +28,7 @@ public record AiRequest(
     }
 
     public static class Builder {
-        private String model = "llama3.2:3b";
+        private String model = "gpt-4o-mini";
         private String systemPrompt;
         private List<AiMessage> messages = Collections.emptyList();
         private Double temperature = 0.7;

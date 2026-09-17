@@ -21,17 +21,23 @@ spring:
 
 app:
   cors:
-    allowed-origins: http://localhost:3000
+    allowed-origins: http://localhost:3000,http://localhost:4200
+
 
 ai:
-  default-provider: OLLAMA
-  default-model: llama3.2:3b
+  default-provider: OPENAI
+  default-model: gpt-4o-mini
   default-temperature: 0.7
   default-max-tokens: 2048
   default-top-p: 1.0
   timeout-seconds: 5
   max-retries: 0
   retry-backoff-ms: 10
+  openai:
+    api-key: "test-openai-key"
+    base-url: "https://api.openai.com/v1"
+    connect-timeout-ms: 1000
+    read-timeout-ms: 1000
   ollama:
     base-url: http://localhost:11434
     api-key: ""

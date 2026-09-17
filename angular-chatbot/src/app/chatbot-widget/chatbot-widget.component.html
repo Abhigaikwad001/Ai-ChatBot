@@ -1,0 +1,74 @@
+<!-- Floating Widget Container -->
+<div
+  class="chatbot-widget-root fixed bottom-6 right-6 z-[99999] font-sans"
+  [class.max-sm:static]="isOpen"
+  [class.is-open]="isOpen"
+>
+  <!-- Mobile Backdrop Overlay -->
+  <div
+    *ngIf="isOpen"
+    class="mobile-backdrop hidden max-sm:block fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[99998]"
+    (click)="closeChat()"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Sliding Chat Panel -->
+  <div
+    *ngIf="isOpen"
+    class="widget-panel absolute bottom-[68px] right-0 w-[380px] h-[580px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-110px)] bg-white rounded-2xl overflow-hidden shadow-2xl ring-1 ring-slate-900/10 flex flex-col origin-bottom-right animate-slide-up max-sm:fixed max-sm:inset-0 max-sm:w-screen max-sm:h-screen max-sm:max-w-none max-sm:max-h-none max-sm:rounded-none max-sm:bottom-0 max-sm:right-0 max-sm:z-[99999]"
+    role="dialog"
+    aria-modal="false"
+    aria-label="AI Assistant"
+  >
+    <app-chatbot-panel (close)="closeChat()"></app-chatbot-panel>
+  </div>
+
+  <!-- Floating Launcher Button -->
+  <button
+    type="button"
+    class="floating-launcher-btn w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 active:scale-95 text-white border-0 cursor-pointer flex items-center justify-center shadow-lg shadow-blue-600/35 hover:shadow-xl hover:shadow-blue-600/45 hover:scale-105 relative transition-all duration-200 outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+    [class.max-sm:hidden]="isOpen"
+    (click)="toggleChat()"
+    [attr.aria-expanded]="isOpen"
+    [attr.aria-label]="isOpen ? 'Close AI Assistant' : 'Open AI Assistant'"
+    title="AI Assistant"
+  >
+    <!-- Closed State: Chat Robot Icon -->
+    <svg
+      *ngIf="!isOpen"
+      class="launcher-icon transition-transform duration-200"
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      <circle cx="9" cy="10" r="1"></circle>
+      <circle cx="15" cy="10" r="1"></circle>
+    </svg>
+
+    <!-- Open State: Close Cross Icon -->
+    <svg
+      *ngIf="isOpen"
+      class="launcher-icon close-icon"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+
+    <!-- Pulse badge when closed -->
+    <span *ngIf="!isOpen" class="launcher-pulse absolute top-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+  </button>
+</div>

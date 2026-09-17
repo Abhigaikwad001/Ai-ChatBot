@@ -112,7 +112,7 @@ class ChatServiceStreamingTest {
             assertThat(assistantMsg.getSequenceNumber()).isEqualTo(2);
             assertThat(assistantMsg.getContent()).isEqualTo("Heart rate is 72 bpm and stable.");
             assertThat(assistantMsg.getStatus()).isEqualTo(MessageStatus.SENT);
-            assertThat(assistantMsg.getMetadata()).containsEntry("provider", "OLLAMA");
+            assertThat(assistantMsg.getMetadata()).containsEntry("provider", "OPENAI");
         });
 
         // Verify audit log recorded

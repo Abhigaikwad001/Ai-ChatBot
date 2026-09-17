@@ -75,6 +75,13 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
+		<!-- Official OpenAI Java SDK -->
+		<dependency>
+			<groupId>com.openai</groupId>
+			<artifactId>openai-java</artifactId>
+			<version>0.31.0</version>
+		</dependency>
+
 		<!-- Spring Boot Test (JUnit 5, AssertJ, Mockito) -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

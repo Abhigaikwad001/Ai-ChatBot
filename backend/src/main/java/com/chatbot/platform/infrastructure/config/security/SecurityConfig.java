@@ -26,7 +26,7 @@ public class SecurityConfig {
     private final List<String> allowedOrigins;
 
     public SecurityConfig(
-        @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}") String allowedOriginsStr
+        @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:4200}") String allowedOriginsStr
     ) {
         this.allowedOrigins = Arrays.stream(allowedOriginsStr.split(","))
             .map(String::trim)

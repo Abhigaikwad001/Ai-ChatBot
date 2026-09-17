@@ -76,17 +76,17 @@ public class TestStubAiProvider implements AiProvider {
 
     @Override
     public ProviderType getProviderType() {
-        return ProviderType.OLLAMA;
+        return ProviderType.OPENAI;
     }
 
     @Override
     public AiResponse generate(AiRequest request) {
         this.lastReceivedRequest = request;
         if (failWithTimeout) {
-            throw new AiProviderTimeoutException("OLLAMA", "Simulated test timeout after 5000ms");
+            throw new AiProviderTimeoutException("OPENAI", "Simulated test timeout after 5000ms");
         }
         if (failWithUnavailable) {
-            throw new AiProviderUnavailableException("OLLAMA", "Simulated test service offline");
+            throw new AiProviderUnavailableException("OPENAI", "Simulated test service offline");
         }
 
         String lastContent = request.messages().isEmpty()
@@ -99,7 +99,7 @@ public class TestStubAiProvider implements AiProvider {
 
         return AiResponse.builder()
             .content(responseText)
-            .provider("OLLAMA")
+            .provider("OPENAI")
             .model(request.model())
             .promptTokens(14)
             .completionTokens(32)
@@ -116,7 +116,7 @@ public class TestStubAiProvider implements AiProvider {
         this.streamCancelled.set(false);
 
         if (failWithTimeout) {
-            listener.onError(new AiProviderTimeoutException("OLLAMA", "Simulated test timeout after 5000ms"));
+            listener.onError(new AiProviderTimeoutException("OPENAI", "Simulated test timeout after 5000ms"));
             return new AiStreamHandle() {
                 @Override public void cancel() { streamCancelled.set(true); }
                 @Override public boolean isCancelled() { return streamCancelled.get(); }
@@ -124,7 +124,7 @@ public class TestStubAiProvider implements AiProvider {
         }
 
         if (failWithUnavailable) {
-            listener.onError(new AiProviderUnavailableException("OLLAMA", "Simulated test service offline"));
+            listener.onError(new AiProviderUnavailableException("OPENAI", "Simulated test service offline"));
             return new AiStreamHandle() {
                 @Override public void cancel() { streamCancelled.set(true); }
                 @Override public boolean isCancelled() { return streamCancelled.get(); }
@@ -135,7 +135,7 @@ public class TestStubAiProvider implements AiProvider {
 
         if (failDuringStream) {
             listener.onChunk(new AiStreamChunk("Partial response before failure...", request.model(), 1, false));
-            listener.onError(new AiProviderException("OLLAMA", "Simulated stream interruption mid-transfer", null));
+            listener.onError(new AiProviderException("OPENAI", "Simulated stream interruption mid-transfer", null));
             return new AiStreamHandle() {
                 @Override public void cancel() { streamCancelled.set(true); }
                 @Override public boolean isCancelled() { return streamCancelled.get(); }
@@ -161,7 +161,7 @@ public class TestStubAiProvider implements AiProvider {
         if (!streamCancelled.get()) {
             AiResponse completeResponse = AiResponse.builder()
                 .content(accumulated.toString())
-                .provider("OLLAMA")
+                .provider("OPENAI")
                 .model(request.model())
                 .promptTokens(14)
                 .completionTokens(32)
